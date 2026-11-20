@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#F8F6FF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="26dp"
+        android:gravity="center_horizontal">
+
+        <!-- Logo / Branding -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Happy Happenings"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:textColor="#49317F"
+            android:layout_marginTop="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Make every moment memorable"
+            android:textSize="15sp"
+            android:textColor="#77718B"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="28dp"/>
+
+        <!-- Form Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="22dp"
+            android:background="#FFFFFF">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Create Account"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#30234F"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Join us and start planning your events"
+                android:textSize="14sp"
+                android:textColor="#88839A"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="22dp"/>
+
+            <!-- Name -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Full Name"
+                android:textStyle="bold"
+                android:textColor="#49415F"
+                android:layout_marginBottom="7dp"/>
+
+            <EditText
+                android:id="@+id/etName"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:hint="Enter your full name"
+                android:padding="14dp"
+                android:singleLine="true"
+                android:textColor="#30234F"
+                android:textColorHint="#AAA4B8"
+                android:background="#F4F1FA"
+                android:inputType="textPersonName"/>
+
+            <!-- Email -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Email Address"
+                android:textStyle="bold"
+                android:textColor="#49415F"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="7dp"/>
+
+            <EditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:hint="Enter your email"
+                android:padding="14dp"
+                android:singleLine="true"
+                android:textColor="#30234F"
+                android:textColorHint="#AAA4B8"
+                android:background="#F4F1FA"
+                android:inputType="textEmailAddress"/>
+
+            <!-- Password -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Password"
+                android:textStyle="bold"
+                android:textColor="#49415F"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="7dp"/>
+
+            <EditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:hint="Create a password"
+                android:padding="14dp"
+                android:singleLine="true"
+                android:textColor="#30234F"
+                android:textColorHint="#AAA4B8"
+                android:background="#F4F1FA"
+                android:inputType="textPassword"/>
+
+            <!-- Role Selection -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Register As"
+                android:textStyle="bold"
+                android:textColor="#49415F"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="8dp"/>
+
+            <RadioGroup
+                android:id="@+id/rgRole"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/rbUser"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="User"
+                    android:textColor="#49317F"
+                    android:checked="true"/>
+
+                <RadioButton
+                    android:id="@+id/rbVendor"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Vendor"
+                    android:textColor="#49317F"/>
+            </RadioGroup>
+
+            <!-- Register Button -->
+            <Button
+                android:id="@+id/btnRegister"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Create Account"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#7856D8"
+                android:layout_marginTop="24dp"/>
+
+            <!-- Login navigation placeholder -->
+            <TextView
+                android:id="@+id/tvLogin"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Already have an account? Login"
+                android:textColor="#7856D8"
+                android:textSize="14sp"
+                android:gravity="center"
+                android:padding="16dp"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Celebrate life's beautiful moments ✨"
+            android:textColor="#9991AC"
+            android:textSize="12sp"
+            android:layout_marginTop="22dp"
+            android:layout_marginBottom="20dp"/>
+
+    </LinearLayout>
+
+</ScrollView>

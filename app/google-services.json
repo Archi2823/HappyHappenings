@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "202140897820",
+    "project_id": "happy-happenings-69604",
+    "storage_bucket": "happy-happenings-69604.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:202140897820:android:1b2626e1b15e3f4a3f45d9",
+        "android_client_info": {
+          "package_name": "com.archi.happyhappenings"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuVfv6JuP4wfI6jhDCID7xRjqJ1ijFpq4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
