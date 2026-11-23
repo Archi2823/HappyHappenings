@@ -11,6 +11,18 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.HappyHappenings">
+
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".UserDashboardActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".VendorDashboardActivity"
+            android:exported="false" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

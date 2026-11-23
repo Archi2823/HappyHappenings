@@ -2,6 +2,7 @@
 package com.archi.happyhappenings;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
 import android.widget.Button;
@@ -45,13 +46,14 @@ public class MainActivity extends Activity {
         btnRegister = findViewById(R.id.btnRegister);
         tvLogin = findViewById(R.id.tvLogin);
 
+        // Register button
         btnRegister.setOnClickListener(v -> registerUser());
 
-        tvLogin.setOnClickListener(v ->
-                Toast.makeText(this,
-                        "Login screen will be implemented next",
-                        Toast.LENGTH_SHORT).show()
-        );
+        // Open Login screen
+        tvLogin.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void registerUser() {
