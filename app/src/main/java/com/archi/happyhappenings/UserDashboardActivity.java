@@ -176,14 +176,17 @@ public class UserDashboardActivity extends Activity {
         params.setMargins(0, 0, 0, 14);
         categoryCard.setLayoutParams(params);
 
-        // Category click
-        categoryCard.setOnClickListener(v ->
-                Toast.makeText(
-                        UserDashboardActivity.this,
-                        category + " selected",
-                        Toast.LENGTH_SHORT
-                ).show()
-        );
+        // Category click - open Vendors List
+        categoryCard.setOnClickListener(v -> {
+
+            Intent intent = new Intent(
+                    UserDashboardActivity.this,
+                    VendorsListActivity.class
+            );
+
+            intent.putExtra("category", category);
+            startActivity(intent);
+        });
 
         categoryContainer.addView(categoryCard);
     }

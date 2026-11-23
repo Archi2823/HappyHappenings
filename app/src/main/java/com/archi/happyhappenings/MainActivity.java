@@ -5,16 +5,20 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
+import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,16 +29,30 @@ public class MainActivity extends Activity {
     private RadioGroup rgRole;
     private Button btnRegister;
     private TextView tvLogin;
+    private Spinner spinnerVendorCategory;
 
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
+
+    private String vendorCategory = null;
+
+    private final String[] categories = {
+            "Select Service Category",
+            "Catering",
+            "Dresses",
+            "Photography",
+            "Decoration",
+            "Music & DJ",
+            "Venue",
+            "Makeup",
+            "Invitations"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Firebase initialization
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
@@ -45,13 +63,69 @@ public class MainActivity extends Activity {
         rgRole = findViewById(R.id.rgRole);
         btnRegister = findViewById(R.id.btnRegister);
         tvLogin = findViewById(R.id.tvLogin);
+        spinnerVendorCategory = findViewById(R.id.spinnerVendorCategory);
 
-        // Register button
+        // Setup category dropdown
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                categories
+        );
+
+        adapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item
+        );
+
+        spinnerVendorCategory.setAdapter(adapter);
+        spinnerVendorCategory.setVisibility(View.GONE);
+
+        // Category selection
+        spinnerVendorCategory.setOnItemSelectedListener(
+                new android.widget.AdapterView.OnItemSelectedListener() {
+
+                    @Override
+                    public void onItemSelected(
+                            android.widget.AdapterView<?> parent,
+                            View view,
+                            int position,
+                            long id) {
+
+                        if (position == 0) {
+                            vendorCategory = null;
+                        } else {
+                            vendorCategory = categories[position];
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(
+                            android.widget.AdapterView<?> parent) {
+                        vendorCategory = null;
+                    }
+                }
+        );
+
+        // Role selection
+        rgRole.setOnCheckedChangeListener((group, checkedId) -> {
+
+            if (checkedId == R.id.rbVendor) {
+                spinnerVendorCategory.setVisibility(View.VISIBLE);
+            } else {
+                spinnerVendorCategory.setVisibility(View.GONE);
+                spinnerVendorCategory.setSelection(0);
+                vendorCategory = null;
+            }
+        });
+
+        // Register
         btnRegister.setOnClickListener(v -> registerUser());
 
-        // Open Login screen
+        // Login navigation
         tvLogin.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+            Intent intent = new Intent(
+                    MainActivity.this,
+                    LoginActivity.class
+            );
             startActivity(intent);
         });
     }
@@ -99,20 +173,39 @@ public class MainActivity extends Activity {
         int selectedRoleId = rgRole.getCheckedRadioButtonId();
 
         if (selectedRoleId == -1) {
-            Toast.makeText(this,
+            Toast.makeText(
+                    this,
                     "Please select User or Vendor",
-                    Toast.LENGTH_SHORT).show();
+                    Toast.LENGTH_SHORT
+            ).show();
             return;
         }
 
         RadioButton selectedRadioButton = findViewById(selectedRoleId);
-        String role = selectedRadioButton.getText().toString().trim().toLowerCase();
 
-        // Disable button to prevent duplicate clicks
+        String role = selectedRadioButton.getText()
+                .toString()
+                .trim()
+                .toLowerCase();
+
+        // Validate vendor category
+        if (role.equals("vendor") && vendorCategory == null) {
+
+            Toast.makeText(
+                    this,
+                    "Please select a service category",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            spinnerVendorCategory.performClick();
+            return;
+        }
+
+        // Disable button
         btnRegister.setEnabled(false);
         btnRegister.setText("Creating Account...");
 
-        // Create Firebase Authentication account
+        // Firebase Authentication
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
 
@@ -120,43 +213,79 @@ public class MainActivity extends Activity {
 
                         String uid = mAuth.getCurrentUser().getUid();
 
-                        // Create user profile data
+                        // Private user profile
                         Map<String, Object> userData = new HashMap<>();
                         userData.put("uid", uid);
                         userData.put("name", name);
                         userData.put("email", email);
                         userData.put("role", role);
-                        userData.put("createdAt", FieldValue.serverTimestamp());
+                        userData.put("createdAt",
+                                FieldValue.serverTimestamp());
 
-                        // Save profile in Firestore
-                        db.collection("users")
-                                .document(uid)
-                                .set(userData)
+                        // Public vendor profile
+                        Map<String, Object> vendorData = new HashMap<>();
+
+                        if (role.equals("vendor")) {
+                            userData.put("vendorCategory", vendorCategory);
+
+                            vendorData.put("uid", uid);
+                            vendorData.put("name", name);
+                            vendorData.put("category", vendorCategory);
+                            vendorData.put("createdAt",
+                                    FieldValue.serverTimestamp());
+                        }
+
+                        // Firestore batch
+                        WriteBatch batch = db.batch();
+
+                        batch.set(
+                                db.collection("users").document(uid),
+                                userData
+                        );
+
+                        // Only vendors get a public vendor document
+                        if (role.equals("vendor")) {
+                            batch.set(
+                                    db.collection("vendors").document(uid),
+                                    vendorData
+                            );
+                        }
+
+                        batch.commit()
                                 .addOnSuccessListener(unused -> {
 
                                     btnRegister.setEnabled(true);
                                     btnRegister.setText("Create Account");
 
-                                    Toast.makeText(this,
-                                            "Registration successful! Role: " + role,
-                                            Toast.LENGTH_LONG).show();
+                                    Toast.makeText(
+                                            MainActivity.this,
+                                            "Registration successful!",
+                                            Toast.LENGTH_LONG
+                                    ).show();
 
-                                    // Clear registration form
+                                    // Clear form
                                     etName.setText("");
                                     etEmail.setText("");
                                     etPassword.setText("");
+
                                     rgRole.check(R.id.rbUser);
 
+                                    spinnerVendorCategory.setSelection(0);
+                                    spinnerVendorCategory.setVisibility(View.GONE);
+
+                                    vendorCategory = null;
                                 })
                                 .addOnFailureListener(e -> {
 
                                     btnRegister.setEnabled(true);
                                     btnRegister.setText("Create Account");
 
-                                    Toast.makeText(this,
-                                            "Account created, but profile save failed: "
+                                    Toast.makeText(
+                                            MainActivity.this,
+                                            "Profile save failed: "
                                                     + e.getMessage(),
-                                            Toast.LENGTH_LONG).show();
+                                            Toast.LENGTH_LONG
+                                    ).show();
                                 });
 
                     } else {
@@ -168,9 +297,11 @@ public class MainActivity extends Activity {
                                 ? task.getException().getMessage()
                                 : "Registration failed";
 
-                        Toast.makeText(this,
+                        Toast.makeText(
+                                MainActivity.this,
                                 errorMessage,
-                                Toast.LENGTH_LONG).show();
+                                Toast.LENGTH_LONG
+                        ).show();
                     }
                 });
     }

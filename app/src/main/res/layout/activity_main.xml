@@ -156,6 +156,17 @@
                     android:textColor="#49317F"/>
             </RadioGroup>
 
+
+            <Spinner
+                android:id="@+id/spinnerVendorCategory"
+                android:layout_width="match_parent"
+                android:layout_height="55dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="12dp"
+                android:visibility="gone"
+                android:background="#FFFFFF"
+                android:padding="12dp" />
+
             <!-- Register Button -->
             <Button
                 android:id="@+id/btnRegister"
