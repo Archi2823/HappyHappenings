@@ -3,6 +3,7 @@ package com.archi.happyhappenings;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -14,6 +15,9 @@ import android.widget.Toast;
 
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.DocumentSnapshot;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class VendorsListActivity extends Activity {
 
@@ -29,7 +33,8 @@ public class VendorsListActivity extends Activity {
         selectedCategory = getIntent().getStringExtra("category");
         db = FirebaseFirestore.getInstance();
 
-        if (selectedCategory == null || selectedCategory.trim().isEmpty()) {
+        if (selectedCategory == null ||
+                selectedCategory.trim().isEmpty()) {
             Toast.makeText(this, "Category not found",
                     Toast.LENGTH_SHORT).show();
             finish();
@@ -92,58 +97,145 @@ public class VendorsListActivity extends Activity {
         ScrollView scrollView = new ScrollView(this);
         scrollView.addView(vendorContainer);
 
-        root.addView(scrollView);
+        LinearLayout.LayoutParams scrollParams =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        0,
+                        1
+                );
+
+        root.addView(scrollView, scrollParams);
 
         setContentView(root);
     }
 
+    // Load vendors from registration category OR added service category
     private void loadVendors() {
 
-        db.collection("vendors")
+        // First get vendors who have services in this category
+        db.collection("vendorServices")
                 .whereEqualTo("category", selectedCategory)
                 .get()
-                .addOnSuccessListener(querySnapshot -> {
+                .addOnSuccessListener(serviceSnapshot -> {
 
-                    vendorContainer.removeAllViews();
+                    Set<String> serviceVendorUids = new HashSet<>();
 
-                    if (querySnapshot.isEmpty()) {
-                        tvStatus.setText(
-                                "No vendors available in "
-                                        + selectedCategory + " yet."
-                        );
-                        tvStatus.setVisibility(View.VISIBLE);
-                        return;
-                    }
+                    for (DocumentSnapshot serviceDoc :
+                            serviceSnapshot.getDocuments()) {
 
-                    tvStatus.setVisibility(View.GONE);
+                        String uid = serviceDoc.getString("vendorUid");
 
-                    for (DocumentSnapshot document :
-                            querySnapshot.getDocuments()) {
-
-                        String vendorName = document.getString("name");
-                        String description = document.getString("description");
-                        String location = document.getString("location");
-                        String email = document.getString("email");
-                        String phone = document.getString("phone");
-
-                        if (vendorName == null ||
-                                vendorName.trim().isEmpty()) {
-                            vendorName = "Vendor";
+                        if (uid != null && !uid.trim().isEmpty()) {
+                            serviceVendorUids.add(uid);
                         }
-
-                        addVendorCard(
-                                vendorName,
-                                selectedCategory,
-                                description,
-                                location,
-                                email,
-                                phone
-                        );
                     }
+
+                    // Load vendor profiles
+                    db.collection("vendors")
+                            .get()
+                            .addOnSuccessListener(vendorSnapshot -> {
+
+                                vendorContainer.removeAllViews();
+
+                                int vendorCount = 0;
+
+                                for (DocumentSnapshot document :
+                                        vendorSnapshot.getDocuments()) {
+
+                                    String vendorUid =
+                                            document.getString("uid");
+
+                                    if (vendorUid == null ||
+                                            vendorUid.trim().isEmpty()) {
+                                        vendorUid = document.getId();
+                                    }
+
+                                    String registeredCategory =
+                                            document.getString("category");
+
+                                    // Check registration category
+                                    boolean registeredInCategory =
+                                            selectedCategory.equals(
+                                                    registeredCategory
+                                            );
+
+                                    // Check added services category
+                                    boolean hasServiceInCategory =
+                                            serviceVendorUids.contains(
+                                                    vendorUid
+                                            );
+
+                                    // Vendor can appear through either category
+                                    if (registeredInCategory ||
+                                            hasServiceInCategory) {
+
+                                        String vendorName =
+                                                document.getString("name");
+
+                                        String description =
+                                                document.getString("description");
+
+                                        String location =
+                                                document.getString("location");
+
+                                        String email =
+                                                document.getString("email");
+
+                                        String phone =
+                                                document.getString("phone");
+
+                                        if (vendorName == null ||
+                                                vendorName.trim().isEmpty()) {
+                                            vendorName = "Vendor";
+                                        }
+
+                                        addVendorCard(
+                                                vendorUid,
+                                                vendorName,
+                                                selectedCategory,
+                                                description,
+                                                location,
+                                                email,
+                                                phone
+                                        );
+
+                                        vendorCount++;
+                                    }
+                                }
+
+                                if (vendorCount == 0) {
+                                    tvStatus.setText(
+                                            "No vendors available in "
+                                                    + selectedCategory
+                                                    + " yet."
+                                    );
+
+                                    tvStatus.setVisibility(View.VISIBLE);
+                                } else {
+                                    tvStatus.setVisibility(View.GONE);
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+
+                                tvStatus.setText(
+                                        "Unable to load vendors."
+                                );
+
+                                tvStatus.setVisibility(View.VISIBLE);
+
+                                Toast.makeText(
+                                        this,
+                                        "Error: " + e.getMessage(),
+                                        Toast.LENGTH_LONG
+                                ).show();
+                            });
                 })
                 .addOnFailureListener(e -> {
 
-                    tvStatus.setText("Unable to load vendors.");
+                    tvStatus.setText(
+                            "Unable to load category services."
+                    );
+
                     tvStatus.setVisibility(View.VISIBLE);
 
                     Toast.makeText(
@@ -154,7 +246,9 @@ public class VendorsListActivity extends Activity {
                 });
     }
 
+    // Create Vendor Card
     private void addVendorCard(
+            String vendorUid,
             String vendorName,
             String category,
             String description,
@@ -162,7 +256,6 @@ public class VendorsListActivity extends Activity {
             String email,
             String phone) {
 
-        // Vendor Card
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackgroundColor(0xFFFFFFFF);
@@ -190,9 +283,9 @@ public class VendorsListActivity extends Activity {
 
         card.addView(tvVendorName);
 
-        // Category
+        // Selected Category
         TextView tvCategory = new TextView(this);
-        tvCategory.setText(category);
+        tvCategory.setText("Category: " + category);
         tvCategory.setTextSize(14);
         tvCategory.setTextColor(0xFF7B61FF);
         tvCategory.setPadding(0, 8, 0, 8);
@@ -202,7 +295,8 @@ public class VendorsListActivity extends Activity {
         // Brief Description
         TextView tvDescription = new TextView(this);
 
-        if (description != null && !description.trim().isEmpty()) {
+        if (description != null &&
+                !description.trim().isEmpty()) {
             tvDescription.setText(description);
         } else {
             tvDescription.setText(
@@ -216,8 +310,9 @@ public class VendorsListActivity extends Activity {
 
         card.addView(tvDescription);
 
-        // Location (if available)
-        if (location != null && !location.trim().isEmpty()) {
+        // Location
+        if (location != null &&
+                !location.trim().isEmpty()) {
 
             TextView tvLocation = new TextView(this);
             tvLocation.setText("📍 " + location);
@@ -254,9 +349,45 @@ public class VendorsListActivity extends Activity {
 
         card.addView(profileButton);
 
+        // View Services Button
+        Button servicesButton = new Button(this);
+        servicesButton.setText("View Services");
+
+        LinearLayout.LayoutParams servicesButtonParams =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+
+        servicesButtonParams.setMargins(0, 8, 0, 0);
+        servicesButton.setLayoutParams(servicesButtonParams);
+        servicesButton.setTextColor(0xFFFFFFFF);
+        servicesButton.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(
+                        0xFF6C42C1
+                )
+        );
+
+        servicesButton.setOnClickListener(v -> {
+
+            Intent intent = new Intent(
+                    VendorsListActivity.this,
+                    VendorServicesActivity.class
+            );
+
+            intent.putExtra("vendorUid", vendorUid);
+            intent.putExtra("vendorName", vendorName);
+            intent.putExtra("category", category);
+
+            startActivity(intent);
+        });
+
+        card.addView(servicesButton);
+
         vendorContainer.addView(card);
     }
 
+    // Show Vendor Profile
     private void showVendorProfile(
             String name,
             String category,
@@ -269,19 +400,23 @@ public class VendorsListActivity extends Activity {
 
         details.append("Category: ").append(category);
 
-        if (description != null && !description.trim().isEmpty()) {
+        if (description != null &&
+                !description.trim().isEmpty()) {
             details.append("\n\nAbout: ").append(description);
         }
 
-        if (location != null && !location.trim().isEmpty()) {
+        if (location != null &&
+                !location.trim().isEmpty()) {
             details.append("\n\nLocation: ").append(location);
         }
 
-        if (email != null && !email.trim().isEmpty()) {
+        if (email != null &&
+                !email.trim().isEmpty()) {
             details.append("\n\nEmail: ").append(email);
         }
 
-        if (phone != null && !phone.trim().isEmpty()) {
+        if (phone != null &&
+                !phone.trim().isEmpty()) {
             details.append("\n\nPhone: ").append(phone);
         }
 

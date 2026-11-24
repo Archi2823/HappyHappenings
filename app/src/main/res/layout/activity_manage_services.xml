@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/manageServicesRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="#F7F4FC">
+
+    <!-- Header -->
+    <TextView
+        android:id="@+id/tvServicesTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Manage Services"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="#673AB7"
+        android:paddingBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvServicesSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add, edit and manage your event services"
+        android:textSize="14sp"
+        android:textColor="#777777"
+        android:paddingBottom="20dp" />
+
+    <!-- Add New Service Button -->
+    <Button
+        android:id="@+id/btnAddService"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="+ Add New Service"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:backgroundTint="#673AB7" />
+
+    <!-- Services List -->
+    <ScrollView
+        android:id="@+id/servicesScrollView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="16dp"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:id="@+id/servicesContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>
