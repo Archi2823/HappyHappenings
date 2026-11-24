@@ -117,7 +117,7 @@ public class MainActivity extends Activity {
             }
         });
 
-        // Register
+        // Register button
         btnRegister.setOnClickListener(v -> registerUser());
 
         // Login navigation
@@ -211,6 +211,17 @@ public class MainActivity extends Activity {
 
                     if (task.isSuccessful()) {
 
+                        if (mAuth.getCurrentUser() == null) {
+                            btnRegister.setEnabled(true);
+                            btnRegister.setText("Create Account");
+                            Toast.makeText(
+                                    MainActivity.this,
+                                    "User account not found",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                            return;
+                        }
+
                         String uid = mAuth.getCurrentUser().getUid();
 
                         // Private user profile
@@ -226,10 +237,16 @@ public class MainActivity extends Activity {
                         Map<String, Object> vendorData = new HashMap<>();
 
                         if (role.equals("vendor")) {
+
                             userData.put("vendorCategory", vendorCategory);
 
                             vendorData.put("uid", uid);
+
+                            // IMPORTANT: Required by Firestore rules
+                            vendorData.put("ownerUid", uid);
+
                             vendorData.put("name", name);
+                            vendorData.put("email", email);
                             vendorData.put("category", vendorCategory);
                             vendorData.put("createdAt",
                                     FieldValue.serverTimestamp());
@@ -238,12 +255,13 @@ public class MainActivity extends Activity {
                         // Firestore batch
                         WriteBatch batch = db.batch();
 
+                        // Save user profile
                         batch.set(
                                 db.collection("users").document(uid),
                                 userData
                         );
 
-                        // Only vendors get a public vendor document
+                        // Save public vendor profile only for vendors
                         if (role.equals("vendor")) {
                             batch.set(
                                     db.collection("vendors").document(uid),

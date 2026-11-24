@@ -27,6 +27,7 @@
         <activity
             android:name=".VendorsListActivity"
             android:exported="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
