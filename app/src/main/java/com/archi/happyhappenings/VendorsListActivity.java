@@ -367,7 +367,6 @@ public class VendorsListActivity extends Activity {
                         0xFF6C42C1
                 )
         );
-
         servicesButton.setOnClickListener(v -> {
 
             Intent intent = new Intent(

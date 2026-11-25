@@ -22,7 +22,6 @@ public class VendorServicesActivity extends Activity {
 
     private LinearLayout servicesContainer;
     private TextView tvStatus;
-
     private FirebaseFirestore db;
 
     private String vendorUid;
