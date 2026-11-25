@@ -17,6 +17,7 @@ public class VendorDashboardActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.CENTER);
@@ -57,6 +58,16 @@ public class VendorDashboardActivity extends Activity {
                 )
         );
 
+        // My Bookings Button
+        Button myBookings = new Button(this);
+        myBookings.setText("My Bookings");
+        myBookings.setTextColor(Color.WHITE);
+        myBookings.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(
+                        Color.rgb(46, 125, 50)
+                )
+        );
+
         // Logout Button
         Button logout = new Button(this);
         logout.setText("Logout");
@@ -66,15 +77,25 @@ public class VendorDashboardActivity extends Activity {
         layout.addView(welcome);
         layout.addView(description);
         layout.addView(manageServices);
+        layout.addView(myBookings);
         layout.addView(logout);
 
         setContentView(layout);
 
-        // Manage Services - Add, Edit, Delete all from same screen
+        // Manage Services
         manageServices.setOnClickListener(v -> {
             Intent intent = new Intent(
                     VendorDashboardActivity.this,
                     ManageServicesActivity.class
+            );
+            startActivity(intent);
+        });
+
+        // My Bookings
+        myBookings.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    VendorDashboardActivity.this,
+                    MyBookingsActivity.class
             );
             startActivity(intent);
         });

@@ -2,11 +2,13 @@
 package com.archi.happyhappenings;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -39,12 +41,7 @@ public class VendorServicesActivity extends Activity {
         db = FirebaseFirestore.getInstance();
 
         if (vendorUid == null || vendorUid.trim().isEmpty()) {
-            Toast.makeText(
-                    this,
-                    "Vendor not found",
-                    Toast.LENGTH_SHORT
-            ).show();
-
+            Toast.makeText(this, "Vendor not found", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -172,17 +169,19 @@ public class VendorServicesActivity extends Activity {
                                 document.getString("category");
 
                         // If service category is missing,
-                        // use vendor registration category
+                        // use the selected category as fallback
                         if (serviceCategory == null ||
                                 serviceCategory.trim().isEmpty()) {
                             serviceCategory = category;
                         }
 
-                        // Only show services in the selected category
+                        // Only show services in selected category
                         if (!category.equalsIgnoreCase(
                                 serviceCategory.trim())) {
                             continue;
                         }
+
+                        String serviceId = document.getId();
 
                         String title = document.getString("title");
                         String description =
@@ -206,6 +205,7 @@ public class VendorServicesActivity extends Activity {
                         }
 
                         addServiceCard(
+                                serviceId,
                                 title,
                                 description,
                                 price,
@@ -240,6 +240,7 @@ public class VendorServicesActivity extends Activity {
 
     // Create service card
     private void addServiceCard(
+            String serviceId,
             String title,
             String description,
             double price,
@@ -313,6 +314,52 @@ public class VendorServicesActivity extends Activity {
         tvPrice.setTypeface(null, Typeface.BOLD);
 
         card.addView(tvPrice);
+
+        // Book This Service Button
+        Button btnBook = new Button(this);
+        btnBook.setText("Book This Service");
+        btnBook.setTextSize(15);
+        btnBook.setAllCaps(false);
+        btnBook.setTextColor(Color.WHITE);
+        btnBook.setTypeface(null, Typeface.BOLD);
+
+        GradientDrawable buttonBackground = new GradientDrawable();
+        buttonBackground.setColor(Color.rgb(108, 66, 193));
+        buttonBackground.setCornerRadius(16);
+
+        btnBook.setBackground(buttonBackground);
+
+        LinearLayout.LayoutParams buttonParams =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+
+        buttonParams.setMargins(0, 16, 0, 0);
+        btnBook.setLayoutParams(buttonParams);
+
+        btnBook.setPadding(12, 14, 12, 14);
+
+        // Open Booking Activity
+        btnBook.setOnClickListener(v -> {
+
+            Intent intent = new Intent(
+                    VendorServicesActivity.this,
+                    BookingActivity.class
+            );
+
+            intent.putExtra("vendorUid", vendorUid);
+            intent.putExtra("vendorName", vendorName);
+            intent.putExtra("serviceId", serviceId);
+            intent.putExtra("serviceName", title);
+            intent.putExtra("serviceDescription", description);
+            intent.putExtra("servicePrice", price);
+            intent.putExtra("category", serviceCategory);
+
+            startActivity(intent);
+        });
+
+        card.addView(btnBook);
 
         servicesContainer.addView(card);
     }
