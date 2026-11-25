@@ -80,6 +80,38 @@ public class UserDashboardActivity extends Activity {
         subtitle.setGravity(Gravity.CENTER);
         subtitle.setPadding(0, 0, 0, 24);
 
+        // My Bookings Button
+        TextView myBookings = new TextView(this);
+        myBookings.setText("📋   My Bookings");
+        myBookings.setTextSize(17);
+        myBookings.setTextColor(Color.WHITE);
+        myBookings.setTypeface(null, Typeface.BOLD);
+        myBookings.setGravity(Gravity.CENTER);
+        myBookings.setPadding(20, 18, 20, 18);
+
+        GradientDrawable bookingsBg = new GradientDrawable();
+        bookingsBg.setColor(Color.rgb(108, 66, 193));
+        bookingsBg.setCornerRadius(18);
+        myBookings.setBackground(bookingsBg);
+        myBookings.setElevation(4);
+
+        LinearLayout.LayoutParams bookingsParams =
+                new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+
+        bookingsParams.setMargins(0, 0, 0, 24);
+        myBookings.setLayoutParams(bookingsParams);
+
+        myBookings.setOnClickListener(v -> {
+            Intent intent = new Intent(
+                    UserDashboardActivity.this,
+                    CustomerMyBookingsActivity.class
+            );
+            startActivity(intent);
+        });
+
         // Categories Heading
         TextView categoryHeading = new TextView(this);
         categoryHeading.setText("Explore Categories");
@@ -138,6 +170,10 @@ public class UserDashboardActivity extends Activity {
         mainLayout.addView(title);
         mainLayout.addView(welcome);
         mainLayout.addView(subtitle);
+
+        // My Bookings
+        mainLayout.addView(myBookings);
+
         mainLayout.addView(categoryHeading);
         mainLayout.addView(categoryContainer);
         mainLayout.addView(logout);
