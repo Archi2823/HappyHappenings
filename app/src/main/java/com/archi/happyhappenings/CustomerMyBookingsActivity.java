@@ -2,21 +2,32 @@
 package com.archi.happyhappenings;
 
 import android.app.Activity;
+import android.app.DatePickerDialog;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.DocumentSnapshot;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.Calendar;
 
 public class CustomerMyBookingsActivity extends Activity {
 
@@ -25,6 +36,20 @@ public class CustomerMyBookingsActivity extends Activity {
 
     private LinearLayout bookingsContainer;
     private TextView tvLoading;
+
+    private Spinner spinnerCategory;
+    private Spinner spinnerVendor;
+    private Button btnDateFilter;
+    private Button btnClearFilters;
+    private TextView tvFilterInfo;
+
+    private List<DocumentSnapshot> allBookings = new ArrayList<>();
+
+    private String selectedCategory = "All Categories";
+    private String selectedVendor = "All Vendors";
+    private String selectedDate = "";
+
+    private boolean suppressFilterCallbacks = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +77,6 @@ public class CustomerMyBookingsActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(24, 24, 24, 24);
 
-        // Back button
         TextView tvBack = new TextView(this);
         tvBack.setText("←  Back");
         tvBack.setTextSize(16);
@@ -62,7 +86,6 @@ public class CustomerMyBookingsActivity extends Activity {
 
         root.addView(tvBack);
 
-        // App title
         TextView title = new TextView(this);
         title.setText("Happy Happenings");
         title.setTextSize(25);
@@ -73,7 +96,6 @@ public class CustomerMyBookingsActivity extends Activity {
 
         root.addView(title);
 
-        // Heading
         TextView heading = new TextView(this);
         heading.setText("My Bookings");
         heading.setTextSize(24);
@@ -83,16 +105,16 @@ public class CustomerMyBookingsActivity extends Activity {
 
         root.addView(heading);
 
-        // Subtitle
         TextView subtitle = new TextView(this);
-        subtitle.setText("Track your event service bookings");
+        subtitle.setText("Track and filter your event service bookings");
         subtitle.setTextSize(15);
         subtitle.setTextColor(Color.GRAY);
         subtitle.setPadding(0, 0, 0, 22);
 
         root.addView(subtitle);
 
-        // Loading text
+        createFilterSection(root);
+
         tvLoading = new TextView(this);
         tvLoading.setText("Loading bookings...");
         tvLoading.setTextSize(16);
@@ -102,7 +124,6 @@ public class CustomerMyBookingsActivity extends Activity {
 
         root.addView(tvLoading);
 
-        // Bookings container
         bookingsContainer = new LinearLayout(this);
         bookingsContainer.setOrientation(LinearLayout.VERTICAL);
 
@@ -112,7 +133,100 @@ public class CustomerMyBookingsActivity extends Activity {
         setContentView(scrollView);
     }
 
-    // Load current customer's bookings
+    private void createFilterSection(LinearLayout root) {
+
+        LinearLayout filterBox = new LinearLayout(this);
+        filterBox.setOrientation(LinearLayout.VERTICAL);
+        filterBox.setPadding(16, 16, 16, 16);
+
+        GradientDrawable filterBg = new GradientDrawable();
+        filterBg.setColor(Color.WHITE);
+        filterBg.setCornerRadius(20);
+
+        filterBox.setBackground(filterBg);
+        filterBox.setElevation(3);
+
+        LinearLayout.LayoutParams boxParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+
+        boxParams.setMargins(0, 0, 0, 20);
+        filterBox.setLayoutParams(boxParams);
+
+        TextView filterHeading = new TextView(this);
+        filterHeading.setText("🔎  Filter Bookings");
+        filterHeading.setTextSize(18);
+        filterHeading.setTypeface(null, Typeface.BOLD);
+        filterHeading.setTextColor(Color.rgb(75, 50, 120));
+        filterHeading.setPadding(0, 0, 0, 14);
+
+        filterBox.addView(filterHeading);
+
+        TextView categoryLabel = createFilterLabel("Category");
+        filterBox.addView(categoryLabel);
+
+        spinnerCategory = new Spinner(this);
+        filterBox.addView(spinnerCategory);
+
+        TextView vendorLabel = createFilterLabel("Vendor");
+        vendorLabel.setPadding(0, 14, 0, 6);
+        filterBox.addView(vendorLabel);
+
+        spinnerVendor = new Spinner(this);
+        filterBox.addView(spinnerVendor);
+
+        TextView dateLabel = createFilterLabel("Event Date");
+        dateLabel.setPadding(0, 14, 0, 6);
+        filterBox.addView(dateLabel);
+
+        btnDateFilter = new Button(this);
+        btnDateFilter.setText("📅  Select Event Date");
+        btnDateFilter.setTextColor(Color.rgb(90, 60, 140));
+        btnDateFilter.setAllCaps(false);
+        btnDateFilter.setOnClickListener(v -> openDatePicker());
+
+        filterBox.addView(btnDateFilter);
+
+        btnClearFilters = new Button(this);
+        btnClearFilters.setText("✖  Clear All Filters");
+        btnClearFilters.setTextColor(Color.rgb(110, 75, 140));
+        btnClearFilters.setAllCaps(false);
+        btnClearFilters.setOnClickListener(v -> clearFilters());
+
+        LinearLayout.LayoutParams clearParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+
+        clearParams.setMargins(0, 8, 0, 0);
+        btnClearFilters.setLayoutParams(clearParams);
+
+        filterBox.addView(btnClearFilters);
+
+        tvFilterInfo = new TextView(this);
+        tvFilterInfo.setText("Showing all bookings");
+        tvFilterInfo.setTextSize(13);
+        tvFilterInfo.setTextColor(Color.GRAY);
+        tvFilterInfo.setPadding(0, 12, 0, 0);
+
+        filterBox.addView(tvFilterInfo);
+
+        root.addView(filterBox);
+    }
+
+    private TextView createFilterLabel(String text) {
+
+        TextView label = new TextView(this);
+        label.setText(text);
+        label.setTextSize(14);
+        label.setTypeface(null, Typeface.BOLD);
+        label.setTextColor(Color.rgb(75, 65, 95));
+        label.setPadding(0, 0, 0, 6);
+
+        return label;
+    }
+
     private void loadBookings() {
 
         String customerUid = auth.getCurrentUser().getUid();
@@ -123,23 +237,23 @@ public class CustomerMyBookingsActivity extends Activity {
                 .addOnSuccessListener(querySnapshot -> {
 
                     tvLoading.setVisibility(TextView.GONE);
-                    bookingsContainer.removeAllViews();
+                    allBookings.clear();
+                    allBookings.addAll(querySnapshot.getDocuments());
 
-                    if (querySnapshot.isEmpty()) {
+                    if (allBookings.isEmpty()) {
                         showEmptyBookings();
                         return;
                     }
 
-                    for (com.google.firebase.firestore.DocumentSnapshot document
-                            : querySnapshot.getDocuments()) {
-
-                        addBookingCard(document);
-                    }
+                    setupCategoryFilter();
+                    setupVendorFilter();
+                    applyFilters();
                 })
                 .addOnFailureListener(e -> {
 
                     tvLoading.setVisibility(TextView.VISIBLE);
                     tvLoading.setText("Unable to load bookings.");
+
                     Toast.makeText(
                             CustomerMyBookingsActivity.this,
                             "Error: " + e.getMessage(),
@@ -148,8 +262,239 @@ public class CustomerMyBookingsActivity extends Activity {
                 });
     }
 
-    // Empty booking message
+    private void setupCategoryFilter() {
+
+        Set<String> categorySet = new HashSet<>();
+        categorySet.add("All Categories");
+
+        for (DocumentSnapshot document : allBookings) {
+
+            String category = document.getString("category");
+
+            if (category != null && !category.trim().isEmpty()) {
+                categorySet.add(category);
+            }
+        }
+
+        List<String> categories = new ArrayList<>(categorySet);
+        Collections.sort(categories);
+        categories.remove("All Categories");
+        categories.add(0, "All Categories");
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                categories
+        );
+
+        adapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item
+        );
+
+        spinnerCategory.setAdapter(adapter);
+
+        spinnerCategory.setOnItemSelectedListener(
+                new android.widget.AdapterView.OnItemSelectedListener() {
+
+                    @Override
+                    public void onItemSelected(
+                            android.widget.AdapterView<?> parent,
+                            android.view.View view,
+                            int position,
+                            long id) {
+
+                        selectedCategory = categories.get(position);
+
+                        if (!suppressFilterCallbacks) {
+                            applyFilters();
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(
+                            android.widget.AdapterView<?> parent) {
+                    }
+                }
+        );
+    }
+
+    private void setupVendorFilter() {
+
+        Set<String> vendorSet = new HashSet<>();
+        vendorSet.add("All Vendors");
+
+        for (DocumentSnapshot document : allBookings) {
+
+            String vendorName = document.getString("vendorName");
+
+            if (vendorName != null && !vendorName.trim().isEmpty()) {
+                vendorSet.add(vendorName);
+            }
+        }
+
+        List<String> vendors = new ArrayList<>(vendorSet);
+        Collections.sort(vendors);
+        vendors.remove("All Vendors");
+        vendors.add(0, "All Vendors");
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                vendors
+        );
+
+        adapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item
+        );
+
+        spinnerVendor.setAdapter(adapter);
+
+        spinnerVendor.setOnItemSelectedListener(
+                new android.widget.AdapterView.OnItemSelectedListener() {
+
+                    @Override
+                    public void onItemSelected(
+                            android.widget.AdapterView<?> parent,
+                            android.view.View view,
+                            int position,
+                            long id) {
+
+                        selectedVendor = vendors.get(position);
+
+                        if (!suppressFilterCallbacks) {
+                            applyFilters();
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(
+                            android.widget.AdapterView<?> parent) {
+                    }
+                }
+        );
+    }
+
+    private void openDatePicker() {
+
+        Calendar calendar = Calendar.getInstance();
+
+        DatePickerDialog dialog = new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+
+                    selectedDate = String.format(
+                            Locale.US,
+                            "%04d-%02d-%02d",
+                            year,
+                            month + 1,
+                            dayOfMonth
+                    );
+
+                    btnDateFilter.setText("📅  " + selectedDate);
+                    applyFilters();
+                },
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
+        );
+
+        dialog.show();
+    }
+
+    private void applyFilters() {
+
+        if (bookingsContainer == null || allBookings == null) {
+            return;
+        }
+
+        bookingsContainer.removeAllViews();
+
+        int count = 0;
+
+        for (DocumentSnapshot document : allBookings) {
+
+            String category = document.getString("category");
+            String vendorName = document.getString("vendorName");
+            String eventDate = document.getString("eventDate");
+
+            if (category == null) category = "";
+            if (vendorName == null) vendorName = "";
+            if (eventDate == null) eventDate = "";
+
+            boolean categoryMatch =
+                    selectedCategory.equals("All Categories")
+                            || selectedCategory.equalsIgnoreCase(category);
+
+            boolean vendorMatch =
+                    selectedVendor.equals("All Vendors")
+                            || selectedVendor.equalsIgnoreCase(vendorName);
+
+            boolean dateMatch =
+                    selectedDate.isEmpty()
+                            || selectedDate.equals(eventDate);
+
+            if (categoryMatch && vendorMatch && dateMatch) {
+                addBookingCard(document);
+                count++;
+            }
+        }
+
+        updateFilterInfo(count);
+
+        if (count == 0) {
+            showNoFilterResults();
+        }
+    }
+
+    private void updateFilterInfo(int count) {
+
+        StringBuilder info = new StringBuilder();
+
+        info.append("Showing ")
+                .append(count)
+                .append(count == 1 ? " booking" : " bookings");
+
+        if (!selectedCategory.equals("All Categories")) {
+            info.append(" • ").append(selectedCategory);
+        }
+
+        if (!selectedVendor.equals("All Vendors")) {
+            info.append(" • ").append(selectedVendor);
+        }
+
+        if (!selectedDate.isEmpty()) {
+            info.append(" • ").append(selectedDate);
+        }
+
+        tvFilterInfo.setText(info.toString());
+    }
+
+    private void clearFilters() {
+
+        suppressFilterCallbacks = true;
+
+        selectedCategory = "All Categories";
+        selectedVendor = "All Vendors";
+        selectedDate = "";
+
+        if (spinnerCategory != null && spinnerCategory.getAdapter() != null) {
+            spinnerCategory.setSelection(0);
+        }
+
+        if (spinnerVendor != null && spinnerVendor.getAdapter() != null) {
+            spinnerVendor.setSelection(0);
+        }
+
+        btnDateFilter.setText("📅  Select Event Date");
+
+        suppressFilterCallbacks = false;
+
+        applyFilters();
+    }
+
     private void showEmptyBookings() {
+
+        bookingsContainer.removeAllViews();
 
         TextView empty = new TextView(this);
         empty.setText("📋\n\nNo bookings yet!\nBook a service to see it here.");
@@ -161,9 +506,19 @@ public class CustomerMyBookingsActivity extends Activity {
         bookingsContainer.addView(empty);
     }
 
-    // Create booking card
-    private void addBookingCard(
-            com.google.firebase.firestore.DocumentSnapshot document) {
+    private void showNoFilterResults() {
+
+        TextView empty = new TextView(this);
+        empty.setText("🔍\n\nNo bookings found for selected filters.\nTry changing or clearing the filters.");
+        empty.setTextSize(16);
+        empty.setTextColor(Color.rgb(100, 85, 120));
+        empty.setGravity(Gravity.CENTER);
+        empty.setPadding(20, 35, 20, 35);
+
+        bookingsContainer.addView(empty);
+    }
+
+    private void addBookingCard(DocumentSnapshot document) {
 
         String vendorName = document.getString("vendorName");
         String serviceName = document.getString("serviceName");
@@ -182,7 +537,6 @@ public class CustomerMyBookingsActivity extends Activity {
         if (status == null) status = "Pending";
         if (price == null) price = 0.0;
 
-        // Main card
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(20, 20, 20, 20);
@@ -203,7 +557,6 @@ public class CustomerMyBookingsActivity extends Activity {
         cardParams.setMargins(0, 0, 0, 18);
         card.setLayoutParams(cardParams);
 
-        // Service name
         TextView tvService = new TextView(this);
         tvService.setText("🎉  " + serviceName);
         tvService.setTextSize(20);
@@ -213,7 +566,6 @@ public class CustomerMyBookingsActivity extends Activity {
 
         card.addView(tvService);
 
-        // Status
         TextView tvStatus = new TextView(this);
         tvStatus.setText("Status: " + status);
         tvStatus.setTextSize(14);
@@ -248,29 +600,20 @@ public class CustomerMyBookingsActivity extends Activity {
 
         card.addView(tvStatus);
 
-        // Vendor
         addInfo(card, "Vendor", vendorName);
-
-        // Category
         addInfo(card, "Category", category);
-
-        // Event date
         addInfo(card, "Event Date", eventDate);
 
-        // Price
         NumberFormat nf = NumberFormat.getNumberInstance(new Locale("en", "IN"));
         nf.setMaximumFractionDigits(2);
         nf.setMinimumFractionDigits(0);
 
         addInfo(card, "Price", "₹ " + nf.format(price));
-
-        // Note
         addInfo(card, "Special Note", note);
 
         bookingsContainer.addView(card);
     }
 
-    // Add information row
     private void addInfo(
             LinearLayout container,
             String label,
