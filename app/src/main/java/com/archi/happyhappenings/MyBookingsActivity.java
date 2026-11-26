@@ -19,6 +19,8 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class MyBookingsActivity extends Activity {
@@ -27,9 +29,13 @@ public class MyBookingsActivity extends Activity {
     private FirebaseAuth auth;
 
     private LinearLayout bookingsContainer;
+    private LinearLayout filterContainer;
     private TextView tvStatus;
 
     private String vendorUid;
+    private String selectedStatus = "All";
+
+    private List<DocumentSnapshot> allBookings = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +97,28 @@ public class MyBookingsActivity extends Activity {
         tvSubtitle.setPadding(0, 8, 0, 20);
         root.addView(tvSubtitle);
 
+        filterContainer = new LinearLayout(this);
+        filterContainer.setOrientation(LinearLayout.HORIZONTAL);
+        filterContainer.setPadding(0, 0, 0, 12);
+
+        String[] filters = {"All", "Pending", "Accepted", "Rejected"};
+
+        for (String filter : filters) {
+            Button filterButton = createFilterButton(filter);
+
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1
+            );
+
+            params.setMargins(3, 3, 3, 3);
+            filterButton.setLayoutParams(params);
+            filterContainer.addView(filterButton);
+        }
+
+        root.addView(filterContainer);
+
         tvStatus = new TextView(this);
         tvStatus.setText("Loading bookings...");
         tvStatus.setTextSize(15);
@@ -105,6 +133,47 @@ public class MyBookingsActivity extends Activity {
 
         scrollView.addView(root);
         setContentView(scrollView);
+
+        updateFilterButtons();
+    }
+
+    private Button createFilterButton(String filter) {
+
+        Button button = new Button(this);
+        button.setText(filter);
+        button.setTextSize(12);
+        button.setAllCaps(false);
+        button.setPadding(2, 8, 2, 8);
+        button.setOnClickListener(v -> {
+            selectedStatus = filter;
+            updateFilterButtons();
+            renderBookings();
+        });
+
+        return button;
+    }
+
+    private void updateFilterButtons() {
+
+        for (int i = 0; i < filterContainer.getChildCount(); i++) {
+
+            Button button = (Button) filterContainer.getChildAt(i);
+            String filter = button.getText().toString();
+
+            GradientDrawable bg = new GradientDrawable();
+            bg.setCornerRadius(18);
+
+            if (filter.equals(selectedStatus)) {
+                bg.setColor(Color.rgb(108, 66, 193));
+                button.setTextColor(Color.WHITE);
+            } else {
+                bg.setColor(Color.WHITE);
+                bg.setStroke(2, Color.rgb(220, 210, 240));
+                button.setTextColor(Color.rgb(90, 70, 110));
+            }
+
+            button.setBackground(bg);
+        }
     }
 
     private void loadBookings() {
@@ -118,21 +187,10 @@ public class MyBookingsActivity extends Activity {
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
 
-                    bookingsContainer.removeAllViews();
+                    allBookings.clear();
+                    allBookings.addAll(querySnapshot.getDocuments());
 
-                    int count = querySnapshot.size();
-
-                    if (count == 0) {
-                        tvStatus.setText("You don't have any bookings yet.");
-                        tvStatus.setVisibility(TextView.VISIBLE);
-                        return;
-                    }
-
-                    tvStatus.setVisibility(TextView.GONE);
-
-                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
-                        addBookingCard(document);
-                    }
+                    renderBookings();
                 })
                 .addOnFailureListener(e -> {
 
@@ -145,6 +203,43 @@ public class MyBookingsActivity extends Activity {
                             Toast.LENGTH_LONG
                     ).show();
                 });
+    }
+
+    private void renderBookings() {
+
+        bookingsContainer.removeAllViews();
+
+        if (allBookings.isEmpty()) {
+            tvStatus.setText("You don't have any bookings yet.");
+            tvStatus.setVisibility(TextView.VISIBLE);
+            return;
+        }
+
+        int filteredCount = 0;
+
+        for (DocumentSnapshot document : allBookings) {
+
+            String status = document.getString("status");
+
+            if (status == null) {
+                status = "Pending";
+            }
+
+            if ("All".equals(selectedStatus)
+                    || selectedStatus.equalsIgnoreCase(status)) {
+
+                addBookingCard(document);
+                filteredCount++;
+            }
+        }
+
+        if (filteredCount == 0) {
+            tvStatus.setText("No " + selectedStatus.toLowerCase()
+                    + " bookings found.");
+            tvStatus.setVisibility(TextView.VISIBLE);
+        } else {
+            tvStatus.setVisibility(TextView.GONE);
+        }
     }
 
     private void addBookingCard(DocumentSnapshot document) {
@@ -342,8 +437,8 @@ public class MyBookingsActivity extends Activity {
 
         new AlertDialog.Builder(this)
                 .setTitle(newStatus + " Booking?")
-                .setMessage("Are you sure you want to " +
-                        newStatus.toLowerCase() + " this booking?")
+                .setMessage("Are you sure you want to "
+                        + newStatus.toLowerCase() + " this booking?")
                 .setPositiveButton("Yes", (dialog, which) ->
                         updateBookingStatus(bookingId, newStatus))
                 .setNegativeButton("Cancel", null)
