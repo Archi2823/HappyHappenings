@@ -30,6 +30,7 @@ public class BookingActivity extends Activity {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
+    private EditText etEventName;
     private TextView tvSelectedDate;
     private EditText etNote;
     private Button btnConfirm;
@@ -52,7 +53,6 @@ public class BookingActivity extends Activity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // Get data from VendorServicesActivity
         vendorUid = getIntent().getStringExtra("vendorUid");
         vendorName = getIntent().getStringExtra("vendorName");
         serviceId = getIntent().getStringExtra("serviceId");
@@ -91,17 +91,14 @@ public class BookingActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(24, 24, 24, 24);
 
-        // Back
         TextView tvBack = new TextView(this);
         tvBack.setText("←  Back");
         tvBack.setTextSize(16);
         tvBack.setTextColor(Color.rgb(90, 80, 100));
         tvBack.setPadding(0, 8, 0, 20);
         tvBack.setOnClickListener(v -> finish());
-
         root.addView(tvBack);
 
-        // App title
         TextView tvAppTitle = new TextView(this);
         tvAppTitle.setText("Happy Happenings");
         tvAppTitle.setTextSize(25);
@@ -109,20 +106,16 @@ public class BookingActivity extends Activity {
         tvAppTitle.setTextColor(Color.rgb(108, 66, 193));
         tvAppTitle.setGravity(Gravity.CENTER);
         tvAppTitle.setPadding(0, 0, 0, 20);
-
         root.addView(tvAppTitle);
 
-        // Heading
         TextView tvHeading = new TextView(this);
         tvHeading.setText("Book Your Service");
         tvHeading.setTextSize(24);
         tvHeading.setTypeface(null, Typeface.BOLD);
         tvHeading.setTextColor(Color.rgb(45, 35, 65));
         tvHeading.setPadding(0, 0, 0, 20);
-
         root.addView(tvHeading);
 
-        // Booking details card
         LinearLayout detailsCard = new LinearLayout(this);
         detailsCard.setOrientation(LinearLayout.VERTICAL);
         detailsCard.setPadding(20, 20, 20, 20);
@@ -134,16 +127,10 @@ public class BookingActivity extends Activity {
         detailsCard.setBackground(cardBg);
         detailsCard.setElevation(4);
 
-        // Vendor
         addDetail(detailsCard, "Vendor", vendorName);
-
-        // Service
         addDetail(detailsCard, "Service", serviceName);
-
-        // Category
         addDetail(detailsCard, "Category", category);
 
-        // Price
         NumberFormat nf = NumberFormat.getNumberInstance(new Locale("en", "IN"));
         nf.setMaximumFractionDigits(2);
         nf.setMinimumFractionDigits(0);
@@ -152,46 +139,50 @@ public class BookingActivity extends Activity {
 
         root.addView(detailsCard);
 
-        // Event date heading
+        TextView tvEventNameHeading = new TextView(this);
+        tvEventNameHeading.setText("Event Name");
+        tvEventNameHeading.setTextSize(17);
+        tvEventNameHeading.setTypeface(null, Typeface.BOLD);
+        tvEventNameHeading.setTextColor(Color.rgb(65, 45, 100));
+        tvEventNameHeading.setPadding(0, 24, 0, 10);
+        root.addView(tvEventNameHeading);
+
+        etEventName = new EditText(this);
+        etEventName.setHint("e.g. Wedding, Birthday, Engagement");
+        etEventName.setTextSize(15);
+        etEventName.setSingleLine(true);
+        etEventName.setTextColor(Color.rgb(60, 50, 70));
+        etEventName.setHintTextColor(Color.GRAY);
+        etEventName.setPadding(18, 16, 18, 16);
+        etEventName.setBackground(createInputBackground());
+        root.addView(etEventName);
+
         TextView tvDateHeading = new TextView(this);
         tvDateHeading.setText("Event Date");
         tvDateHeading.setTextSize(17);
         tvDateHeading.setTypeface(null, Typeface.BOLD);
         tvDateHeading.setTextColor(Color.rgb(65, 45, 100));
         tvDateHeading.setPadding(0, 24, 0, 10);
-
         root.addView(tvDateHeading);
 
-        // Date picker button
         tvSelectedDate = new TextView(this);
         tvSelectedDate.setText("📅  Select Event Date");
         tvSelectedDate.setTextSize(16);
         tvSelectedDate.setTextColor(Color.rgb(90, 80, 100));
         tvSelectedDate.setPadding(18, 18, 18, 18);
         tvSelectedDate.setGravity(Gravity.CENTER_VERTICAL);
-
-        GradientDrawable dateBg = new GradientDrawable();
-        dateBg.setColor(Color.WHITE);
-        dateBg.setCornerRadius(16);
-        dateBg.setStroke(2, Color.rgb(220, 210, 240));
-
-        tvSelectedDate.setBackground(dateBg);
-
+        tvSelectedDate.setBackground(createInputBackground());
         tvSelectedDate.setOnClickListener(v -> openDatePicker());
-
         root.addView(tvSelectedDate);
 
-        // Note heading
         TextView tvNoteHeading = new TextView(this);
-        tvNoteHeading.setText("Special Note (Optional)");
+        tvNoteHeading.setText("Message / Special Note");
         tvNoteHeading.setTextSize(17);
         tvNoteHeading.setTypeface(null, Typeface.BOLD);
         tvNoteHeading.setTextColor(Color.rgb(65, 45, 100));
         tvNoteHeading.setPadding(0, 24, 0, 10);
-
         root.addView(tvNoteHeading);
 
-        // Note input
         etNote = new EditText(this);
         etNote.setHint("Write event details or special requirements...");
         etNote.setTextSize(15);
@@ -200,17 +191,9 @@ public class BookingActivity extends Activity {
         etNote.setGravity(Gravity.TOP | Gravity.START);
         etNote.setPadding(18, 18, 18, 18);
         etNote.setMinHeight(130);
-
-        GradientDrawable noteBg = new GradientDrawable();
-        noteBg.setColor(Color.WHITE);
-        noteBg.setCornerRadius(16);
-        noteBg.setStroke(2, Color.rgb(220, 210, 240));
-
-        etNote.setBackground(noteBg);
-
+        etNote.setBackground(createInputBackground());
         root.addView(etNote);
 
-        // Confirm booking button
         btnConfirm = new Button(this);
         btnConfirm.setText("Confirm Booking");
         btnConfirm.setTextSize(16);
@@ -224,16 +207,14 @@ public class BookingActivity extends Activity {
 
         btnConfirm.setBackground(buttonBg);
 
-        LinearLayout.LayoutParams buttonParams =
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                );
+        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
 
         buttonParams.setMargins(0, 24, 0, 16);
         btnConfirm.setLayoutParams(buttonParams);
         btnConfirm.setPadding(12, 16, 12, 16);
-
         btnConfirm.setOnClickListener(v -> confirmBooking());
 
         root.addView(btnConfirm);
@@ -242,22 +223,23 @@ public class BookingActivity extends Activity {
         setContentView(scrollView);
     }
 
-    // Add label/value rows
-    private void addDetail(
-            LinearLayout container,
-            String label,
-            String value) {
+    private GradientDrawable createInputBackground() {
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Color.WHITE);
+        bg.setCornerRadius(16);
+        bg.setStroke(2, Color.rgb(220, 210, 240));
+        return bg;
+    }
 
+    private void addDetail(LinearLayout container, String label, String value) {
         TextView tv = new TextView(this);
         tv.setText(label + "\n" + value);
         tv.setTextSize(16);
         tv.setTextColor(Color.rgb(65, 45, 100));
         tv.setPadding(0, 0, 0, 16);
-
         container.addView(tv);
     }
 
-    // Date picker
     private void openDatePicker() {
 
         Calendar calendar = Calendar.getInstance();
@@ -269,8 +251,10 @@ public class BookingActivity extends Activity {
                     Calendar selected = Calendar.getInstance();
                     selected.set(year, month, dayOfMonth);
 
-                    SimpleDateFormat sdf =
-                            new SimpleDateFormat("dd MMM yyyy", Locale.getDefault());
+                    SimpleDateFormat sdf = new SimpleDateFormat(
+                            "dd MMM yyyy",
+                            Locale.getDefault()
+                    );
 
                     selectedDate = new SimpleDateFormat(
                             "yyyy-MM-dd",
@@ -288,7 +272,6 @@ public class BookingActivity extends Activity {
                 calendar.get(Calendar.DAY_OF_MONTH)
         );
 
-        // Disable past dates
         datePickerDialog.getDatePicker().setMinDate(
                 System.currentTimeMillis() - 1000
         );
@@ -296,15 +279,18 @@ public class BookingActivity extends Activity {
         datePickerDialog.show();
     }
 
-    // Save booking to Firestore
     private void confirmBooking() {
 
+        String eventName = etEventName.getText().toString().trim();
+
+        if (eventName.isEmpty()) {
+            etEventName.setError("Please enter event name");
+            etEventName.requestFocus();
+            return;
+        }
+
         if (selectedDate.isEmpty()) {
-            Toast.makeText(
-                    this,
-                    "Please select event date",
-                    Toast.LENGTH_SHORT
-            ).show();
+            Toast.makeText(this, "Please select event date", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -318,7 +304,6 @@ public class BookingActivity extends Activity {
 
         String customerUid = auth.getCurrentUser().getUid();
         String customerEmail = auth.getCurrentUser().getEmail();
-
         String note = etNote.getText().toString().trim();
 
         Map<String, Object> booking = new HashMap<>();
@@ -334,13 +319,13 @@ public class BookingActivity extends Activity {
         booking.put("serviceDescription", serviceDescription);
 
         booking.put("category", category);
+        booking.put("eventName", eventName);
         booking.put("price", servicePrice);
 
         booking.put("eventDate", selectedDate);
         booking.put("note", note);
 
         booking.put("status", "Pending");
-
         booking.put("createdAt", com.google.firebase.firestore.FieldValue.serverTimestamp());
 
         db.collection("bookings")

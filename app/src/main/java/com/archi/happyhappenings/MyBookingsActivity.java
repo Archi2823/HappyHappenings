@@ -18,6 +18,9 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.NumberFormat;
+import java.util.Locale;
+
 public class MyBookingsActivity extends Activity {
 
     private FirebaseFirestore db;
@@ -57,17 +60,14 @@ public class MyBookingsActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(24, 24, 24, 24);
 
-        // Back button
         TextView tvBack = new TextView(this);
         tvBack.setText("←  Back");
         tvBack.setTextSize(16);
         tvBack.setTextColor(Color.rgb(90, 80, 100));
         tvBack.setPadding(0, 8, 0, 20);
         tvBack.setOnClickListener(v -> finish());
-
         root.addView(tvBack);
 
-        // App title
         TextView tvAppTitle = new TextView(this);
         tvAppTitle.setText("Happy Happenings");
         tvAppTitle.setTextSize(25);
@@ -75,48 +75,43 @@ public class MyBookingsActivity extends Activity {
         tvAppTitle.setTypeface(null, Typeface.BOLD);
         tvAppTitle.setGravity(Gravity.CENTER);
         tvAppTitle.setPadding(0, 0, 0, 20);
-
         root.addView(tvAppTitle);
 
-        // Heading
         TextView tvHeading = new TextView(this);
         tvHeading.setText("My Bookings");
         tvHeading.setTextSize(24);
         tvHeading.setTextColor(Color.rgb(45, 35, 65));
         tvHeading.setTypeface(null, Typeface.BOLD);
-
         root.addView(tvHeading);
 
         TextView tvSubtitle = new TextView(this);
-        tvSubtitle.setText("Manage service booking requests from customers");
+        tvSubtitle.setText("View and manage booking requests from customers");
         tvSubtitle.setTextSize(14);
         tvSubtitle.setTextColor(Color.GRAY);
         tvSubtitle.setPadding(0, 8, 0, 20);
-
         root.addView(tvSubtitle);
 
-        // Status
         tvStatus = new TextView(this);
         tvStatus.setText("Loading bookings...");
         tvStatus.setTextSize(15);
         tvStatus.setTextColor(Color.GRAY);
         tvStatus.setGravity(Gravity.CENTER);
         tvStatus.setPadding(10, 30, 10, 30);
-
         root.addView(tvStatus);
 
-        // Booking cards container
         bookingsContainer = new LinearLayout(this);
         bookingsContainer.setOrientation(LinearLayout.VERTICAL);
-
         root.addView(bookingsContainer);
 
         scrollView.addView(root);
         setContentView(scrollView);
     }
 
-    // Load bookings belonging to the currently logged-in vendor
     private void loadBookings() {
+
+        tvStatus.setText("Loading bookings...");
+        tvStatus.setVisibility(TextView.VISIBLE);
+        bookingsContainer.removeAllViews();
 
         db.collection("bookings")
                 .whereEqualTo("vendorUid", vendorUid)
@@ -135,9 +130,7 @@ public class MyBookingsActivity extends Activity {
 
                     tvStatus.setVisibility(TextView.GONE);
 
-                    for (DocumentSnapshot document :
-                            querySnapshot.getDocuments()) {
-
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
                         addBookingCard(document);
                     }
                 })
@@ -154,10 +147,10 @@ public class MyBookingsActivity extends Activity {
                 });
     }
 
-    // Build booking card
     private void addBookingCard(DocumentSnapshot document) {
 
         String customerEmail = document.getString("customerEmail");
+        String eventName = document.getString("eventName");
         String serviceName = document.getString("serviceName");
         String category = document.getString("category");
         String eventDate = document.getString("eventDate");
@@ -171,14 +164,34 @@ public class MyBookingsActivity extends Activity {
             price = ((Number) priceObject).doubleValue();
         }
 
-        if (customerEmail == null) customerEmail = "Customer";
-        if (serviceName == null) serviceName = "Service";
-        if (category == null) category = "Services";
-        if (eventDate == null) eventDate = "Not specified";
-        if (note == null || note.trim().isEmpty()) note = "No note added";
-        if (status == null) status = "Pending";
+        if (customerEmail == null || customerEmail.trim().isEmpty()) {
+            customerEmail = "Customer";
+        }
 
-        // Card
+        if (eventName == null || eventName.trim().isEmpty()) {
+            eventName = "Not specified";
+        }
+
+        if (serviceName == null || serviceName.trim().isEmpty()) {
+            serviceName = "Service";
+        }
+
+        if (category == null || category.trim().isEmpty()) {
+            category = "Services";
+        }
+
+        if (eventDate == null || eventDate.trim().isEmpty()) {
+            eventDate = "Not specified";
+        }
+
+        if (note == null || note.trim().isEmpty()) {
+            note = "No message added";
+        }
+
+        if (status == null || status.trim().isEmpty()) {
+            status = "Pending";
+        }
+
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(20, 20, 20, 20);
@@ -190,36 +203,58 @@ public class MyBookingsActivity extends Activity {
         card.setBackground(cardBg);
         card.setElevation(4);
 
-        LinearLayout.LayoutParams cardParams =
-                new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                );
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
 
         cardParams.setMargins(0, 0, 0, 18);
         card.setLayoutParams(cardParams);
 
-        // Service name
         TextView tvService = new TextView(this);
         tvService.setText(serviceName);
         tvService.setTextSize(20);
         tvService.setTextColor(Color.rgb(65, 45, 100));
         tvService.setTypeface(null, Typeface.BOLD);
-
         card.addView(tvService);
 
         addInfo(card, "Customer", customerEmail);
+        addInfo(card, "Event Name", eventName);
         addInfo(card, "Category", category);
         addInfo(card, "Event Date", eventDate);
-        addInfo(card, "Price", "₹ " + price);
-        addInfo(card, "Customer Note", note);
 
-        // Status
+        NumberFormat nf = NumberFormat.getNumberInstance(new Locale("en", "IN"));
+        nf.setMaximumFractionDigits(2);
+        nf.setMinimumFractionDigits(0);
+
+        addInfo(card, "Price", "₹ " + nf.format(price));
+
+        TextView tvMessageHeading = new TextView(this);
+        tvMessageHeading.setText("Customer Message");
+        tvMessageHeading.setTextSize(15);
+        tvMessageHeading.setTextColor(Color.rgb(65, 45, 100));
+        tvMessageHeading.setTypeface(null, Typeface.BOLD);
+        tvMessageHeading.setPadding(0, 18, 0, 8);
+        card.addView(tvMessageHeading);
+
+        TextView tvMessage = new TextView(this);
+        tvMessage.setText(note);
+        tvMessage.setTextSize(15);
+        tvMessage.setTextColor(Color.rgb(80, 70, 90));
+        tvMessage.setPadding(14, 14, 14, 14);
+
+        GradientDrawable messageBg = new GradientDrawable();
+        messageBg.setColor(Color.rgb(246, 243, 252));
+        messageBg.setCornerRadius(14);
+
+        tvMessage.setBackground(messageBg);
+        card.addView(tvMessage);
+
         TextView tvBookingStatus = new TextView(this);
         tvBookingStatus.setText("Status: " + status);
         tvBookingStatus.setTextSize(15);
         tvBookingStatus.setTypeface(null, Typeface.BOLD);
-        tvBookingStatus.setPadding(0, 12, 0, 12);
+        tvBookingStatus.setPadding(0, 16, 0, 12);
 
         if ("Accepted".equalsIgnoreCase(status)) {
             tvBookingStatus.setTextColor(Color.rgb(46, 125, 50));
@@ -231,7 +266,6 @@ public class MyBookingsActivity extends Activity {
 
         card.addView(tvBookingStatus);
 
-        // Actions only for pending bookings
         if ("Pending".equalsIgnoreCase(status)) {
 
             LinearLayout buttonRow = new LinearLayout(this);
@@ -248,9 +282,11 @@ public class MyBookingsActivity extends Activity {
             acceptBg.setCornerRadius(14);
             btnAccept.setBackground(acceptBg);
 
-            LinearLayout.LayoutParams acceptParams =
-                    new LinearLayout.LayoutParams(0,
-                            LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            LinearLayout.LayoutParams acceptParams = new LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1
+            );
 
             acceptParams.setMargins(0, 0, 8, 0);
             btnAccept.setLayoutParams(acceptParams);
@@ -265,9 +301,11 @@ public class MyBookingsActivity extends Activity {
             rejectBg.setCornerRadius(14);
             btnReject.setBackground(rejectBg);
 
-            LinearLayout.LayoutParams rejectParams =
-                    new LinearLayout.LayoutParams(0,
-                            LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+            LinearLayout.LayoutParams rejectParams = new LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1
+            );
 
             rejectParams.setMargins(8, 0, 0, 0);
             btnReject.setLayoutParams(rejectParams);
@@ -289,10 +327,7 @@ public class MyBookingsActivity extends Activity {
         bookingsContainer.addView(card);
     }
 
-    private void addInfo(
-            LinearLayout card,
-            String label,
-            String value) {
+    private void addInfo(LinearLayout card, String label, String value) {
 
         TextView tv = new TextView(this);
         tv.setText(label + ": " + value);
@@ -303,10 +338,7 @@ public class MyBookingsActivity extends Activity {
         card.addView(tv);
     }
 
-    // Confirmation dialog before changing status
-    private void showConfirmation(
-            String bookingId,
-            String newStatus) {
+    private void showConfirmation(String bookingId, String newStatus) {
 
         new AlertDialog.Builder(this)
                 .setTitle(newStatus + " Booking?")
@@ -318,10 +350,7 @@ public class MyBookingsActivity extends Activity {
                 .show();
     }
 
-    // Update status in Firestore
-    private void updateBookingStatus(
-            String bookingId,
-            String newStatus) {
+    private void updateBookingStatus(String bookingId, String newStatus) {
 
         db.collection("bookings")
                 .document(bookingId)
