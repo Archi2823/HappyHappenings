@@ -1,4 +1,3 @@
-
 package com.archi.happyhappenings;
 
 import android.app.Activity;
@@ -39,6 +38,9 @@ public class CustomerMyBookingsActivity extends Activity {
 
     private Spinner spinnerCategory;
     private Spinner spinnerVendor;
+    private Spinner spinnerMonth;
+    private Spinner spinnerStatus;
+
     private Button btnDateFilter;
     private Button btnClearFilters;
     private TextView tvFilterInfo;
@@ -47,9 +49,34 @@ public class CustomerMyBookingsActivity extends Activity {
 
     private String selectedCategory = "All Categories";
     private String selectedVendor = "All Vendors";
+    private String selectedMonth = "All Months";
+    private String selectedStatus = "All Status";
     private String selectedDate = "";
 
     private boolean suppressFilterCallbacks = false;
+
+    private final String[] monthNames = {
+            "All Months",
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December"
+    };
+
+    private final String[] statusNames = {
+            "All Status",
+            "Pending",
+            "Accepted",
+            "Rejected"
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +86,8 @@ public class CustomerMyBookingsActivity extends Activity {
         auth = FirebaseAuth.getInstance();
 
         if (auth.getCurrentUser() == null) {
-            Toast.makeText(this, "Please login first", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please login first",
+                    Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -163,7 +191,21 @@ public class CustomerMyBookingsActivity extends Activity {
 
         filterBox.addView(filterHeading);
 
+        TextView monthLabel = createFilterLabel("Month");
+        filterBox.addView(monthLabel);
+
+        spinnerMonth = new Spinner(this);
+        filterBox.addView(spinnerMonth);
+
+        TextView statusLabel = createFilterLabel("Booking Status");
+        statusLabel.setPadding(0, 14, 0, 6);
+        filterBox.addView(statusLabel);
+
+        spinnerStatus = new Spinner(this);
+        filterBox.addView(spinnerStatus);
+
         TextView categoryLabel = createFilterLabel("Category");
+        categoryLabel.setPadding(0, 14, 0, 6);
         filterBox.addView(categoryLabel);
 
         spinnerCategory = new Spinner(this);
@@ -237,6 +279,7 @@ public class CustomerMyBookingsActivity extends Activity {
                 .addOnSuccessListener(querySnapshot -> {
 
                     tvLoading.setVisibility(TextView.GONE);
+
                     allBookings.clear();
                     allBookings.addAll(querySnapshot.getDocuments());
 
@@ -245,8 +288,11 @@ public class CustomerMyBookingsActivity extends Activity {
                         return;
                     }
 
+                    setupMonthFilter();
+                    setupStatusFilter();
                     setupCategoryFilter();
                     setupVendorFilter();
+
                     applyFilters();
                 })
                 .addOnFailureListener(e -> {
@@ -260,6 +306,92 @@ public class CustomerMyBookingsActivity extends Activity {
                             Toast.LENGTH_LONG
                     ).show();
                 });
+    }
+
+    private void setupMonthFilter() {
+
+        List<String> months = new ArrayList<>();
+
+        Collections.addAll(months, monthNames);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                months
+        );
+
+        adapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item
+        );
+
+        spinnerMonth.setAdapter(adapter);
+
+        spinnerMonth.setOnItemSelectedListener(
+                new android.widget.AdapterView.OnItemSelectedListener() {
+
+                    @Override
+                    public void onItemSelected(
+                            android.widget.AdapterView<?> parent,
+                            android.view.View view,
+                            int position,
+                            long id) {
+
+                        selectedMonth = months.get(position);
+
+                        if (!suppressFilterCallbacks) {
+                            applyFilters();
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(
+                            android.widget.AdapterView<?> parent) {
+                    }
+                }
+        );
+    }
+
+    private void setupStatusFilter() {
+
+        List<String> statuses = new ArrayList<>();
+
+        Collections.addAll(statuses, statusNames);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                statuses
+        );
+
+        adapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item
+        );
+
+        spinnerStatus.setAdapter(adapter);
+
+        spinnerStatus.setOnItemSelectedListener(
+                new android.widget.AdapterView.OnItemSelectedListener() {
+
+                    @Override
+                    public void onItemSelected(
+                            android.widget.AdapterView<?> parent,
+                            android.view.View view,
+                            int position,
+                            long id) {
+
+                        selectedStatus = statuses.get(position);
+
+                        if (!suppressFilterCallbacks) {
+                            applyFilters();
+                        }
+                    }
+
+                    @Override
+                    public void onNothingSelected(
+                            android.widget.AdapterView<?> parent) {
+                    }
+                }
+        );
     }
 
     private void setupCategoryFilter() {
@@ -278,6 +410,7 @@ public class CustomerMyBookingsActivity extends Activity {
 
         List<String> categories = new ArrayList<>(categorySet);
         Collections.sort(categories);
+
         categories.remove("All Categories");
         categories.add(0, "All Categories");
 
@@ -334,6 +467,7 @@ public class CustomerMyBookingsActivity extends Activity {
 
         List<String> vendors = new ArrayList<>(vendorSet);
         Collections.sort(vendors);
+
         vendors.remove("All Vendors");
         vendors.add(0, "All Vendors");
 
@@ -401,6 +535,32 @@ public class CustomerMyBookingsActivity extends Activity {
         dialog.show();
     }
 
+    private boolean matchesMonth(String eventDate) {
+
+        if (selectedMonth.equals("All Months")) {
+            return true;
+        }
+
+        if (eventDate == null || eventDate.length() < 7) {
+            return false;
+        }
+
+        try {
+            int monthNumber = Integer.parseInt(
+                    eventDate.substring(5, 7)
+            );
+
+            if (monthNumber < 1 || monthNumber > 12) {
+                return false;
+            }
+
+            return monthNames[monthNumber].equals(selectedMonth);
+
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private void applyFilters() {
 
         if (bookingsContainer == null || allBookings == null) {
@@ -416,10 +576,12 @@ public class CustomerMyBookingsActivity extends Activity {
             String category = document.getString("category");
             String vendorName = document.getString("vendorName");
             String eventDate = document.getString("eventDate");
+            String status = document.getString("status");
 
             if (category == null) category = "";
             if (vendorName == null) vendorName = "";
             if (eventDate == null) eventDate = "";
+            if (status == null) status = "Pending";
 
             boolean categoryMatch =
                     selectedCategory.equals("All Categories")
@@ -433,7 +595,18 @@ public class CustomerMyBookingsActivity extends Activity {
                     selectedDate.isEmpty()
                             || selectedDate.equals(eventDate);
 
-            if (categoryMatch && vendorMatch && dateMatch) {
+            boolean monthMatch = matchesMonth(eventDate);
+
+            boolean statusMatch =
+                    selectedStatus.equals("All Status")
+                            || selectedStatus.equalsIgnoreCase(status);
+
+            if (categoryMatch
+                    && vendorMatch
+                    && dateMatch
+                    && monthMatch
+                    && statusMatch) {
+
                 addBookingCard(document);
                 count++;
             }
@@ -454,6 +627,14 @@ public class CustomerMyBookingsActivity extends Activity {
                 .append(count)
                 .append(count == 1 ? " booking" : " bookings");
 
+        if (!selectedMonth.equals("All Months")) {
+            info.append(" • ").append(selectedMonth);
+        }
+
+        if (!selectedStatus.equals("All Status")) {
+            info.append(" • ").append(selectedStatus);
+        }
+
         if (!selectedCategory.equals("All Categories")) {
             info.append(" • ").append(selectedCategory);
         }
@@ -473,9 +654,19 @@ public class CustomerMyBookingsActivity extends Activity {
 
         suppressFilterCallbacks = true;
 
+        selectedMonth = "All Months";
+        selectedStatus = "All Status";
         selectedCategory = "All Categories";
         selectedVendor = "All Vendors";
         selectedDate = "";
+
+        if (spinnerMonth != null && spinnerMonth.getAdapter() != null) {
+            spinnerMonth.setSelection(0);
+        }
+
+        if (spinnerStatus != null && spinnerStatus.getAdapter() != null) {
+            spinnerStatus.setSelection(0);
+        }
 
         if (spinnerCategory != null && spinnerCategory.getAdapter() != null) {
             spinnerCategory.setSelection(0);
@@ -485,11 +676,19 @@ public class CustomerMyBookingsActivity extends Activity {
             spinnerVendor.setSelection(0);
         }
 
-        btnDateFilter.setText("📅  Select Event Date");
+        if (btnDateFilter != null) {
+            btnDateFilter.setText("📅  Select Event Date");
+        }
 
         suppressFilterCallbacks = false;
 
         applyFilters();
+
+        Toast.makeText(
+                this,
+                "All filters cleared",
+                Toast.LENGTH_SHORT
+        ).show();
     }
 
     private void showEmptyBookings() {
@@ -579,9 +778,11 @@ public class CustomerMyBookingsActivity extends Activity {
         if (status.equalsIgnoreCase("Accepted")) {
             statusBg.setColor(Color.rgb(220, 245, 225));
             tvStatus.setTextColor(Color.rgb(30, 130, 65));
+
         } else if (status.equalsIgnoreCase("Rejected")) {
             statusBg.setColor(Color.rgb(255, 225, 225));
             tvStatus.setTextColor(Color.rgb(190, 45, 45));
+
         } else {
             statusBg.setColor(Color.rgb(255, 240, 210));
             tvStatus.setTextColor(Color.rgb(180, 115, 20));
@@ -604,7 +805,10 @@ public class CustomerMyBookingsActivity extends Activity {
         addInfo(card, "Category", category);
         addInfo(card, "Event Date", eventDate);
 
-        NumberFormat nf = NumberFormat.getNumberInstance(new Locale("en", "IN"));
+        NumberFormat nf = NumberFormat.getNumberInstance(
+                new Locale("en", "IN")
+        );
+
         nf.setMaximumFractionDigits(2);
         nf.setMinimumFractionDigits(0);
 
