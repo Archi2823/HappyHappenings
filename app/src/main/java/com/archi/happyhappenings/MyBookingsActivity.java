@@ -16,6 +16,7 @@ import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.NumberFormat;
@@ -36,6 +37,7 @@ public class MyBookingsActivity extends Activity {
     private String selectedStatus = "All";
 
     private List<DocumentSnapshot> allBookings = new ArrayList<>();
+    private boolean actionInProgress = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -104,6 +106,7 @@ public class MyBookingsActivity extends Activity {
         String[] filters = {"All", "Pending", "Accepted", "Rejected"};
 
         for (String filter : filters) {
+
             Button filterButton = createFilterButton(filter);
 
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -144,6 +147,7 @@ public class MyBookingsActivity extends Activity {
         button.setTextSize(12);
         button.setAllCaps(false);
         button.setPadding(2, 8, 2, 8);
+
         button.setOnClickListener(v -> {
             selectedStatus = filter;
             updateFilterButtons();
@@ -221,7 +225,7 @@ public class MyBookingsActivity extends Activity {
 
             String status = document.getString("status");
 
-            if (status == null) {
+            if (status == null || status.trim().isEmpty()) {
                 status = "Pending";
             }
 
@@ -435,6 +439,13 @@ public class MyBookingsActivity extends Activity {
 
     private void showConfirmation(String bookingId, String newStatus) {
 
+        if (actionInProgress) {
+            Toast.makeText(this,
+                    "Please wait for the current action to finish",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         new AlertDialog.Builder(this)
                 .setTitle(newStatus + " Booking?")
                 .setMessage("Are you sure you want to "
@@ -447,20 +458,36 @@ public class MyBookingsActivity extends Activity {
 
     private void updateBookingStatus(String bookingId, String newStatus) {
 
+        if (actionInProgress) {
+            return;
+        }
+
+        actionInProgress = true;
+
         db.collection("bookings")
                 .document(bookingId)
-                .update("status", newStatus)
+                .update(
+                        "status", newStatus,
+                        "decision", newStatus,
+                        "decisionBy", vendorUid,
+                        "decisionAt", FieldValue.serverTimestamp(),
+                        "updatedAt", FieldValue.serverTimestamp()
+                )
                 .addOnSuccessListener(unused -> {
+
+                    actionInProgress = false;
 
                     Toast.makeText(
                             MyBookingsActivity.this,
-                            "Booking " + newStatus,
+                            "Booking " + newStatus + " successfully",
                             Toast.LENGTH_SHORT
                     ).show();
 
                     loadBookings();
                 })
                 .addOnFailureListener(e -> {
+
+                    actionInProgress = false;
 
                     Toast.makeText(
                             MyBookingsActivity.this,
